@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  ports:
+    - name: rtmp
+      port: {{ .Values.service.ports.rtmp }}
+      targetPort: {{ .Values.service.ports.rtmp }}
+    - name: rtsp
+      port: {{ .Values.service.ports.rtsp }}
+      targetPort: {{ .Values.service.ports.rtsp }}
+    - name: hls
+      port: {{ .Values.service.ports.hls }}
+      targetPort: {{ .Values.service.ports.hls }}
+    - name: webrtc
+      port: {{ .Values.service.ports.webrtc }}
+      targetPort: {{ .Values.service.ports.webrtc }}
+    - name: webrtc-ice
+      port: {{ .Values.service.ports.webrtcIce }}
+      targetPort: {{ .Values.service.ports.webrtcIce }}
+    - name: web-ui
+      port: {{ .Values.service.ports.webUi }}
+      targetPort: {{ .Values.service.ports.webUi }}
+  selector:
+    app: {{ .Release.Name }}
+  type: ClusterIP

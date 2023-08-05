@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: wyze-bridge
+          image: "mrlt8/wyze-bridge:{{ .Chart.AppVersion }}"
+          ports:
+            - name: rtmp
+              containerPort: {{ .Values.service.ports.rtmp }}
+            - name: rtsp
+              containerPort: {{ .Values.service.ports.rtsp }}
+            - name: hls
+              containerPort: {{ .Values.service.ports.hls }}
+            - name: webrtc
+              containerPort: {{ .Values.service.ports.webrtc }}
+            - name: webrtc-ice
+              containerPort: {{ .Values.service.ports.webrtcIce }}
+            - name: web-ui
+              containerPort: {{ .Values.service.ports.webUi }}
+          env:
+          {{- toYaml .Values.env | nindent 12 }}

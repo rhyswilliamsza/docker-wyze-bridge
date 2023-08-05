@@ -1,0 +1,11 @@
+service:
+  ports:
+    rtmp: 1935
+    rtsp: 8554
+    hls: 8888
+    webrtc: 8889
+    webrtcIce: 8189
+    webUi: 5000
+
+env:
+  Example: "Value"
