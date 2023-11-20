@@ -8,4 +8,18 @@ service:
     webUi: 5000
 
 env:
-  Example: "Value"
+  - name: WYZE_EMAIL
+    valueFrom:
+      secretKeyRef:
+        name: wyze-bridge
+        key: WYZE_EMAIL
+  - name: WYZE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: wyze-bridge
+        key: WYZE_PASSWORD
+  - name: TOTP_KEY
+    valueFrom:
+      secretKeyRef:
+        name: wyze-bridge
+        key: TOTP_KEY

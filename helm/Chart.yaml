@@ -1,5 +1,5 @@
 apiVersion: v2
 name: helm-wyze-bridge
-version: 1.0.0-RC1
+version: 1.0.0
 description: A Helm chart for deploying Docker Wyze Bridge.
-appVersion: 2.3.13
+appVersion: 2.5.1
