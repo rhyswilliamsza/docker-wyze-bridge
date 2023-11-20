@@ -4,12 +4,13 @@ from dataclasses import replace
 from threading import Thread
 
 from wyzebridge import config
-from wyzebridge.bridge_utils import env_bool, env_cam
+from wyzebridge.bridge_utils import env_bool, env_cam, is_livestream
 from wyzebridge.logging import logger
-from wyzebridge.rtsp_server import MtxServer
+from wyzebridge.mtx_server import MtxServer
 from wyzebridge.stream import StreamManager
 from wyzebridge.wyze_api import WyzeApi
 from wyzebridge.wyze_stream import WyzeStream, WyzeStreamOptions
+from wyzecam.api_models import WyzeCamera
 
 
 class WyzeBridge(Thread):
@@ -47,7 +48,7 @@ class WyzeBridge(Thread):
                 quality=env_cam("quality", cam.name_uri),
                 audio=bool(env_cam("enable_audio", cam.name_uri)),
                 record=bool(env_cam("record", cam.name_uri)),
-                reconnect=not config.ON_DEMAND,
+                reconnect=is_livestream(cam.name_uri) or not config.ON_DEMAND,
             )
             self.add_substream(cam, options)
             stream = WyzeStream(cam, options)
@@ -55,7 +56,7 @@ class WyzeBridge(Thread):
             self.rtsp.add_path(stream.uri, not options.reconnect)
             self.streams.add(stream)
 
-    def rtsp_fw_proxy(self, cam, stream) -> bool:
+    def rtsp_fw_proxy(self, cam: WyzeCamera, stream: WyzeStream) -> bool:
         if rtsp_fw := env_bool("rtsp_fw").lower():
             if rtsp_path := stream.check_rtsp_fw(rtsp_fw == "force"):
                 rtsp_uri = f"{cam.name_uri}-fw"
@@ -64,7 +65,7 @@ class WyzeBridge(Thread):
                 return True
         return False
 
-    def add_substream(self, cam, options):
+    def add_substream(self, cam: WyzeCamera, options: WyzeStreamOptions):
         """Setup and add substream if enabled for camera."""
         if env_bool(f"SUBSTREAM_{cam.name_uri}") or (
             env_bool("SUBSTREAM") and cam.can_substream
@@ -76,7 +77,7 @@ class WyzeBridge(Thread):
             self.rtsp.add_path(sub.uri, not options.reconnect)
             self.streams.add(sub)
 
-    def clean_up(self, *args):
+    def clean_up(self, *_):
         """Stop all streams and clean up before shutdown."""
         if self.streams.stop_flag:
             sys.exit(0)

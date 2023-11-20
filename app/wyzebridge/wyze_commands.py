@@ -18,9 +18,13 @@ GET_CMDS = {
     "motion_tracking": "K11020GetMotionTracking",
     "motion_tagging": "K10290GetMotionTagging",
     "camera_info": "K10020CheckCameraInfo",
-    "battery": "K10448GetBatteryUsage",
+    "battery_usage": "K10448GetBatteryUsage",
     "rtsp": "K10604GetRtspParam",
+    "accessories": "K10720GetAccessoriesInfo",
+    "floodlight": "K10788GetIntegratedFloodlightInfo",
+    "whitelight": "K10820GetWhiteLightInfo",
     "param_info": "K10020CheckCameraParams",  # Requires a Payload
+    "_bitrate": "K10050GetVideoParam",  # Only works on newer firmware
 }
 
 # These GET_CMDS can include a payload:
@@ -31,6 +35,8 @@ SET_CMDS = {
     "power": None,
     "time_zone": None,
     "cruise_point": None,
+    "fps": None,
+    "bitrate": None,
     "irled": "K10046SetIRLEDStatus",
     "night_vision": "K10042SetNightVisionStatus",
     "status_light": "K10032SetNetworkLightStatus",
@@ -47,10 +53,12 @@ SET_CMDS = {
     "ptz_position": "K11018SetPTZPosition",
     "motion_tracking": "K11022SetMotionTracking",
     "motion_tagging": "K10292SetMotionTagging",
-    "fps": "K10052SetFPS",
-    "bitrate": "K10052SetBitrate",
+    "hor_flip": "K10052HorizontalFlip",
+    "ver_flip": "K10052VerticalFlip",
     "rtsp": "K10600SetRtspSwitch",
-    "quick_reponse": "K11635ResponseQuickMessage",
+    "quick_response": "K11635ResponseQuickMessage",
+    "spotlight": "K10646SetSpotlightStatus",
+    "floodlight": "K12060SetFloodLightSwitch",
 }
 
 CMD_VALUES = {
@@ -71,6 +79,8 @@ PARAMS = {
     "bitrate": "3",
     "res": "4",
     "fps": "5",
+    "hor_flip": "6",
+    "ver_flip": "7",
     "motion_tagging": "21",
     "time_zone": "22",
     "motion_tracking": "27",

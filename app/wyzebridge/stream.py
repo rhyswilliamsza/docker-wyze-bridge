@@ -4,11 +4,12 @@ from subprocess import Popen, TimeoutExpired
 from threading import Thread
 from typing import Any, Callable, Optional, Protocol
 
-from wyzebridge.config import MQTT_DISCOVERY, SNAPSHOT_INT, SNAPSHOT_TYPE
+from wyzebridge.config import MOTION, MQTT_DISCOVERY, SNAPSHOT_INT, SNAPSHOT_TYPE
 from wyzebridge.ffmpeg import rtsp_snap_cmd
 from wyzebridge.logging import logger
 from wyzebridge.mqtt import bridge_status, cam_control, publish_topic, update_preview
-from wyzebridge.rtsp_event import RtspEvent
+from wyzebridge.mtx_event import RtspEvent
+from wyzebridge.wyze_events import WyzeEvents
 
 
 class Stream(Protocol):
@@ -24,6 +25,10 @@ class Stream(Protocol):
 
     @property
     def enabled(self) -> bool:
+        ...
+
+    @property
+    def motion(self) -> bool:
         ...
 
     def start(self) -> bool:
@@ -47,7 +52,7 @@ class Stream(Protocol):
     def status(self) -> str:
         ...
 
-    def send_cmd(self, cmd: str, value: str | list | dict = "") -> dict:
+    def send_cmd(self, cmd: str, payload: str | list | dict = "") -> dict:
         ...
 
 
@@ -94,15 +99,17 @@ class StreamManager:
     def monitor_streams(self, mtx_health: Callable) -> None:
         self.stop_flag = False
         if MQTT_DISCOVERY:
-            self.thread = Thread(target=self.monior_snapshots)
+            self.thread = Thread(target=self.monitor_snapshots)
             self.thread.start()
         mqtt = cam_control(self.streams, self.send_cmd)
         logger.info(f"🎬 {self.total} stream{'s'[:self.total^1]} enabled")
         event = RtspEvent(self.streams)
+        events = WyzeEvents(self.streams) if MOTION else None
         while not self.stop_flag:
             event.read(timeout=1)
-            cams = self.health_check_all()
-            self.snap_all(cams)
+            self.snap_all(self.active_streams())
+            if events:
+                events.check_motion()
             if int(time.time()) % 15 == 0:
                 mtx_health()
                 bridge_status(mqtt)
@@ -110,7 +117,7 @@ class StreamManager:
             mqtt.loop_stop()
         logger.info("Stream monitoring stopped")
 
-    def monior_snapshots(self) -> None:
+    def monitor_snapshots(self) -> None:
         for cam in self.streams:
             update_preview(cam)
         while not self.stop_flag:
@@ -121,33 +128,38 @@ class StreamManager:
                     del self.rtsp_snapshots[cam]
             time.sleep(1)
 
-    def health_check_all(self) -> list[str]:
+    def active_streams(self) -> list[str]:
         """
-        Health check on all streams and return a list of enabled streams.
+        Health check on all streams and return a list of enabled
+        streams that are NOT battery powered.
 
         Returns:
         - list(str): uri-friendly name of streams that are enabled.
         """
         return [cam for cam, s in self.streams.items() if s.health_check() > 0]
 
-    def snap_all(self, cams: list[str]):
+    def snap_all(self, cams: Optional[list[str]] = None, force: bool = False):
         """
         Take an rtsp snapshot of the streams in the list.
 
-        Parameters:
-        - cams (list[str]): names of the streams to take a snapshot of.
+        Args:
+        - cams (list[str], optional): names of the streams to take a snapshot of.
+        - force (bool, optional): Ignore interval and force snapshot. Defaults to False.
         """
-        if SNAPSHOT_TYPE != "rtsp" or not cams:
-            return
-        if time.time() - self.last_snap < SNAPSHOT_INT:
-            return
-        self.last_snap = time.time()
-        for cam in cams:
-            stop_subprocess(self.rtsp_snapshots.get(cam))
-            self.rtsp_snap_popen(cam, True)
+        if force or self._should_snap():
+            self.last_snap = time.time()
+            for cam in cams or self.active_streams():
+                stop_subprocess(self.rtsp_snapshots.get(cam))
+                self.rtsp_snap_popen(cam, True)
+
+    def _should_snap(self):
+        return SNAPSHOT_TYPE == "rtsp" and time.time() - self.last_snap >= SNAPSHOT_INT
 
     def get_sse_status(self) -> dict:
-        return {uri: cam.status() for uri, cam in self.streams.items()}
+        return {
+            uri: {"status": cam.status(), "motion": cam.motion}
+            for uri, cam in self.streams.items()
+        }
 
     def send_cmd(
         self, cam_name: str, cmd: str, payload: str | list | dict = ""
@@ -164,6 +176,10 @@ class StreamManager:
         - dictionary: Results that can be converted to JSON.
         """
         resp = {"status": "error", "command": cmd, "payload": payload}
+
+        if cam_name == "all" and cmd == "update_snapshot":
+            self.snap_all(force=True)
+            return resp | {"status": "success"}
 
         if not (stream := self.get(cam_name)):
             return resp | {"response": "Camera not found"}

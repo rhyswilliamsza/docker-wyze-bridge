@@ -453,6 +453,20 @@ class K10046SetIRLEDStatus(TutkWyzeProtocolMessage):
         return encode(self.code, bytes([self.status]))
 
 
+class K10050GetVideoParam(TutkWyzeProtocolMessage):
+    def __init__(self):
+        super().__init__(10050)
+
+    def parse_response(self, resp_data):
+        return {
+            "bitrate": resp_data[0],
+            "res": resp_data[2],
+            "fps": resp_data[3],
+            "hor_flip": resp_data[4],
+            "ver_flip": resp_data[5],
+        }
+
+
 class K10056SetResolvingBit(TutkWyzeProtocolMessage):
     """
     A message used to set the resolution and bitrate of the camera.
@@ -527,6 +541,7 @@ class K10052DBSetResolvingBit(TutkWyzeProtocolMessage):
         :param bitrate: the bit rate, in KB/s to target in the h264/h265 encoder.
         """
         super().__init__(10052)
+        assert 0 <= bitrate <= 255, "bitrate value must be 1-255"
         self.frame_size = frame_size + 1
         self.bitrate = bitrate
         self.fps = fps
@@ -557,7 +572,31 @@ class K10052SetBitrate(TutkWyzeProtocolMessage):
         self.bitrate = value
 
     def encode(self) -> bytes:
-        return encode(self.code, bytes([self.bitrate, 0, 0, 0, 0]))
+        return encode(self.code, bytes([self.bitrate, 0, 0, 0, 0, 0]))
+
+
+class K10052HorizontalFlip(TutkWyzeProtocolMessage):
+    def __init__(self, value: int = 0):
+        super().__init__(10052)
+
+        assert 0 < value <= 2, "horizontal value must be 1-2"
+
+        self.horizontal = value
+
+    def encode(self) -> bytes:
+        return encode(self.code, bytes([0, 0, 0, 0, self.horizontal, 0]))
+
+
+class K10052VerticalFlip(TutkWyzeProtocolMessage):
+    def __init__(self, value: int = 0):
+        super().__init__(10052)
+
+        assert 0 < value <= 2, "vertical value must be 1-2"
+
+        self.vertical = value
+
+    def encode(self) -> bytes:
+        return encode(self.code, bytes([0, 0, 0, 0, 0, self.vertical]))
 
 
 class K10070GetOSDStatus(TutkWyzeProtocolMessage):
@@ -695,7 +734,6 @@ class K10302SetTimeZone(TutkWyzeProtocolMessage):
         self.value: int = value
 
     def encode(self) -> bytes:
-        print(pack("<b", self.value))
         return encode(self.code, pack("<b", self.value))
 
 
@@ -846,7 +884,15 @@ class K10448GetBatteryUsage(TutkWyzeProtocolMessage):
         super().__init__(10448)
 
     def parse_response(self, resp_data):
-        return json.loads(resp_data)
+        data = json.loads(resp_data)
+        return {
+            "last_charge": data["0"],
+            "live_streaming": data["1"],
+            "events_uploaded": data["2"],
+            "events_filtered": data["3"],
+            "sd_recordings": data["4"],
+            "5": data["5"],
+        }
 
 
 class K10600SetRtspSwitch(TutkWyzeProtocolMessage):
@@ -888,7 +934,7 @@ class K11000SetRotaryByDegree(TutkWyzeProtocolMessage):
 
     """
 
-    def __init__(self, horizontal: int, vertical: int, speed: int = 5):
+    def __init__(self, horizontal: int, vertical: int = 0, speed: int = 5):
         super().__init__(11000)
         self.horizontal = horizontal
         self.vertical = vertical
@@ -1129,6 +1175,69 @@ class K11635ResponseQuickMessage(TutkWyzeProtocolMessage):
         super().__init__(11635)
 
         assert 1 <= value <= 3, "value must be 1, 2 or 3"
+        self.value: int = value
+
+    def encode(self) -> bytes:
+        return encode(self.code, bytes([self.value]))
+
+
+class K10646SetSpotlightStatus(TutkWyzeProtocolMessage):
+    """
+    A message used to set the spotlight (WYZEC3L) status.
+
+    Args:
+    - value (int): 1 for on; 2 for off.
+    """
+
+    def __init__(self, value):
+        super().__init__(10646)
+
+        assert 1 <= value <= 2, "value must be 1 or 2"
+        self.value: int = value
+
+    def encode(self) -> bytes:
+        return encode(self.code, bytes([self.value]))
+
+
+class K10720GetAccessoriesInfo(TutkWyzeProtocolMessage):
+    """
+    A message used to get the accessories info.
+    """
+
+    def __init__(self):
+        super().__init__(10720)
+
+    def parse_response(self, resp_data):
+        return json.loads(resp_data)
+
+
+class K10788GetIntegratedFloodlightInfo(TutkWyzeProtocolMessage):
+    """
+    A message used to get the integrated floodlight info.
+    """
+
+    def __init__(self):
+        super().__init__(10788)
+
+
+class K10820GetWhiteLightInfo(TutkWyzeProtocolMessage):
+    """
+    A message used to get the white light info.
+    """
+
+    def __init__(self):
+        super().__init__(10820)
+
+
+class K12060SetFloodLightSwitch(TutkWyzeProtocolMessage):
+    """
+    A message used to set the flood light switch.
+    """
+
+    def __init__(self, value):
+        super().__init__(12060)
+
+        assert 1 <= value <= 2, "value must be 1 or 2"
         self.value: int = value
 
     def encode(self) -> bytes:

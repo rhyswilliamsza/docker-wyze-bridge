@@ -1,3 +1,90 @@
+## What's Changed in v2.5.1
+
+* FIX `ON_DEMAND=False` option was broken in v2.5.0 #1036 #1037
+* NEW API/MQTT commands Thanks @ralacher! #921:
+  * GET: `/api/<cam-name>/accessories` | MQTT: `wyzebridge/<cam-name>/accessories/get`
+  * SET: `/api/<cam-name>/spotlight` | MQTT: `wyzebridge/<cam-name>/spotlight/set`
+
+## What's Changed in v2.5.0
+
+* NEW camera support:
+  * HL_DB2: Wyze Cam Doorbell v2 - thanks @hoveeman!
+  * HL_CAM4: Wyze Cam V4
+* NEW API Endpoint:
+  * `/api/all/update_snapshot` - trigger interval snapshots via web API #1030
+
+
+## What's Changed in v2.4.0
+
+* Motion Events! 
+  * Pulls events from the wyze API, so it doesn't require an active connection to the camera to detect motion - great for battery cams.
+  * Motion status and timestamp available via MQTT and REST API:
+    * MQTT topics: `wyzebridge/{cam-name}/motion` or `wyzebridge/{cam-name}/motion_ts`
+    * REST endpoint: `/api/{cam-name}/motion` or `/api/{cam-name}/motion_ts`
+  * Webhooks ready and works with ntfy.sh `triggers`. 
+  * See [Camera Motion wiki](https://github.com/mrlt8/docker-wyze-bridge/wiki/Camera-Motion) for more information.
+* Other fixes and changes:
+  * Potential improvements for audio sync. Audio will still lag on frame drops. (#388)
+    * Using **wallclock** seems to help in some situations: 
+    `- FFMPEG_FLAGS=-use_wallclock_as_timestamps 1`
+  * UPDATE FFmpeg to [v6.0](https://github.com/homebridge/ffmpeg-for-homebridge/releases/tag/v2.1.0) 
+  * UPDATE MediaMTX version from v1.0.3 to v1.1.0 (#1002)
+  * Store and reuse s3 thumbnail from events to reduce calls to the wyze api (#970)
+  * Increase default `MTX_WRITEQUEUESIZE` (#984)
+  * keep stream alive if livestream enabled (#985)
+  * Catch RuntimeError if libseccomp2 is missing (#994)
+  * Refactored API client to better handle exceptions and limit connections.
+  * Check bitrate from videoParams for all 11.x or newer firmware (#975)
+  * buffer mtx event data (#990)
+  * Exclude battery cams from scheduled RTSP snapshots (#970)
+* New ENV/Options:
+  * `MOTION_API=True`  to enable motion events. (Default: False)
+  * `MOTION_INT=<float>` number of seconds between motion checks. (Default: 1.5) 
+  * `MOTION_START=True` to have the bridge initiate a connection to the camera on a motion event. (Default: False)
+  * `MOTION_WEBHOOK=<str>` webhooks url. Can use `{cam_name}` in the url to make a request to a url with the camera name. Image url and title are available in the request header.
+  * `MOTION_WEBHOOK_<CAM-NAME>=<str>` Same as `MOTION_WEBHOOK` but for a specific camera. 
+
+## What's Changed in v2.3.17
+
+* NEW REST/MQTT Commands:
+  * `battery` GET current battery level on outdoor cams. (#864)
+  * `battery_usage` GET current battery usage times. (#864)
+  * `hor_flip` GET/SET horizontal video flip. (#976)
+  * `ver_flip` GET/SET vertical video flip. (#976)
+* FIXES:
+  * Wrong bitrate error on newer `4.36.11.x` firmware which were not returning the correct bitrate info. (#975)
+  * Typo in `quick_response` REST/MQTT topic.
+  * invalid escape sequence warning.
+* UPDATES:
+  * MediaMTX version from v1.0.0 to v1.0.3 (#979)
+
+
+## What's Changed in v2.3.16
+
+* FIX: Catch exception in thread errors 
+* FIX: Other minor typos and typing errors.
+* UPDATE: Wyze App version to v2.44.1.1 (#946)
+
+## What's Changed in v2.3.15
+
+* FIX: `caminfo` not found error.
+* Update MediaMTX version from v0.23.8 to v1.0.0 (#956)
+
+## What's Changed in v2.3.14
+
+NEW: 
+* PTZ controls in MQTT discovery as "cover"
+* Add ffmpeg `filter_complex` config (#919)
+
+
+CHANGED:
+* Adjust default bitrate for re-encoding to 3000k.
+* Case sensitive FFMPEG_CMD (#736) Thanks @392media!
+* `DEBUG_FFMPEG` is now `FFMPEG_LOGLEVEL` with customizable levels:
+  * `quiet`, `panic`, `fatal`, `error`, `warning`, `info`, `verbose`, `debug`.
+  * Defaults to `fatal`.
+* Bump Wyze App version to v2.44.1.1 (#946)
+
 ## What's Changed in v2.3.13
 
 FIXES:
